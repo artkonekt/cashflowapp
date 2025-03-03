@@ -9,12 +9,21 @@
         <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
         <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
     </head>
     <body>
         <div id="app" class="flex flex-col justify-center items-center mb-36 mx-4">
             <h1 class="mt-10 text-pretty text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl">CashFlowApp</h1>
 
             <div id="cashFlowChart" style="width: 100%; height:500px;"></div>
+
+            <button
+                    @click="clearLocalStorage"
+                    class="mt-4 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-400 disabled:opacity-50 disabled:pointer-events-none"
+                    :disabled="!hasLocalStorageData"
+            >
+                Clear Local Storage
+            </button>
 
             <!-- Textarea for CSV Input -->
             <div class="mt-10">
@@ -23,8 +32,8 @@
                         <h2 class="text-base font-semibold text-gray-900">Paste CSV Data</h2>
 
                         <i>Example: </i>
-                        <pre class="font-bold">2025-01-01,100,10&#13;&#10;2025-01-01,100,10&#13;&#10;2025-01-02,10,200</pre>
-                        <i class="text-sm">date,income,expense</i>
+                        <pre class="font-bold">2025-01-01,100,10,Salary,Rent&#13;&#10;2025-01-01,100,10,Freelance,Utilities&#13;&#10;2025-01-02,10,200,Investment,Groceries</pre>
+                        <i class="text-sm">date,income,expense,income-what,expense-what</i>
                     </div>
 
                     <div>
@@ -52,7 +61,7 @@
                     <h2 class="text-base/7 font-semibold text-gray-900">Incomes</h2>
 
                     <div>
-                        <div class="mt-4 grid grid-cols-7 gap-x-6 gap-y-2">
+                        <div class="mt-4 grid grid-cols-9 max-w-2xl gap-x-6 gap-y-2 content-end">
                             <template v-for="(income, index) in incomes">
                                 <div class="col-span-3">
                                     <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">Date</label>
@@ -80,10 +89,23 @@
                                     </div>
                                 </div>
 
-                                <div class="col-span-1">
+                                <div class="col-span-2">
+                                    <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">What</label>
+
+                                    <div class="mt-2">
+                                        <input
+                                                v-model="income.what"
+                                                type="text"
+                                                class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600 sm:text-sm/6"
+                                        >
+                                    </div>
+                                </div>
+
+                                <div class="col-span-1 contents">
                                     <button
                                             @click="removeIncome(index)"
-                                            class="ml-2 text-red-600 hover:text-red-800"
+                                            class="ml-2 py-2 w-fit text-red-600 hover:text-red-800 self-end"
+                                            tabindex="-1"
                                     >
                                         X
                                     </button>
@@ -105,7 +127,7 @@
                     <h2 class="text-base/7 font-semibold text-gray-900">Expenses</h2>
 
                     <div>
-                        <div class="mt-4 grid grid-cols-7 gap-x-6 gap-y-2">
+                        <div class="mt-4 grid grid-cols-9 max-w-2xl gap-x-6 gap-y-2 content-end">
                             <template v-for="(expense, index) in expenses">
                                 <div class="col-span-3">
                                     <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">Date</label>
@@ -133,10 +155,23 @@
                                     </div>
                                 </div>
 
-                                <div class="col-span-1">
+                                <div class="col-span-2">
+                                    <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">What</label>
+
+                                    <div class="mt-2">
+                                        <input
+                                                v-model="expense.what"
+                                                type="text"
+                                                class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600 sm:text-sm/6"
+                                        >
+                                    </div>
+                                </div>
+
+                                <div class="col-span-1 contents">
                                     <button
                                             @click="removeExpense(index)"
-                                            class="ml-2 text-red-600 hover:text-red-800"
+                                            class="ml-2 py-2 w-fit text-red-600 hover:text-red-800 self-end"
+                                            tabindex="-1"
                                     >
                                         X
                                     </button>
@@ -160,16 +195,19 @@
             let code = {
                 data() {
                     return {
-                        incomes: [{date: null, amount: null}],
-                        expenses: [{date: null, amount: null}],
+                        incomes: JSON.parse(localStorage.getItem('incomes')) || [{date: null, amount: null, what: null}],
+                        expenses: JSON.parse(localStorage.getItem('expenses')) || [{date: null, amount: null, what: null}],
                         balances: [],
                         dates: null,
                         csvInput: null,
                         cashFlowChart: null,
+                        hasLocalStorageData: false,
                     };
                 },
                 created() {
                     window.addEventListener('resize', this.resizeChart);
+
+                    this.checkLocalStorageData();
                 },
                 mounted() {
                     this.cashFlowChart = echarts.init(document.getElementById('cashFlowChart'));
@@ -179,24 +217,28 @@
                 watch: {
                     // Watch for changes in the incomes and expenses arrays and recalculate balances
                     incomes: {
-                        handler() {
+                        handler: _.debounce(function () {
                             this.updateBalances();
-                        },
+                            this.setLocalStorageData();
+                            this.checkLocalStorageData();
+                        }, 300),
                         deep: true,
                     },
                     expenses: {
-                        handler() {
+                        handler: _.debounce(function () {
                             this.updateBalances();
-                        },
+                            this.setLocalStorageData();
+                            this.checkLocalStorageData();
+                        }, 300),
                         deep: true,
                     },
                 },
                 methods: {
                     addIncome() {
-                        this.incomes.push({date: '', amount: ''});
+                        this.incomes.push({date: '', amount: '', what: ''});
                     },
                     addExpense() {
-                        this.expenses.push({date: '', amount: ''});
+                        this.expenses.push({date: '', amount: '', what: ''});
                     },
                     removeIncome(index) {
                         this.incomes.splice(index, 1);
@@ -205,6 +247,21 @@
                     removeExpense(index) {
                         this.expenses.splice(index, 1);
                         this.updateBalances();
+                    },
+                    setLocalStorageData() {
+                        localStorage.setItem('incomes', JSON.stringify(this.incomes));
+                        localStorage.setItem('expenses', JSON.stringify(this.expenses));
+                    },
+                    clearLocalStorage() {
+                        if (confirm('Are you sure you want to clear the local storage?')) {
+                            localStorage.removeItem('incomes');
+                            localStorage.removeItem('expenses');
+                            this.checkLocalStorageData();
+                            this.updateBalances();
+                        }
+                    },
+                    checkLocalStorageData() {
+                        this.hasLocalStorageData = !!localStorage.getItem('incomes') || !!localStorage.getItem('expenses')
                     },
                     updateBalances() {
                         // Reset balances before recalculating
@@ -298,13 +355,19 @@
                     parseCSV() {
                         const rows = this.csvInput.split('\n').filter(row => row.trim() !== '');
                         const parsedData = rows.map(row => {
-                            const [date, income, expense] = row.split(',').map(cell => cell.trim());
-                            return {date, income: parseFloat(income) || 0, expense: parseFloat(expense) || 0};
+                            const [date, income, expense, incomeWhat, expenseWhat] = row.split(',').map(cell => cell.trim());
+                            return {
+                                date,
+                                income: parseFloat(income) || 0,
+                                expense: parseFloat(expense) || 0,
+                                incomeWhat: incomeWhat || '',
+                                expenseWhat: expenseWhat || ''
+                            };
                         });
 
                         // Update incomes and expenses
-                        this.incomes = parsedData.map(row => ({date: row.date, amount: row.income}));
-                        this.expenses = parsedData.map(row => ({date: row.date, amount: row.expense}));
+                        this.incomes = parsedData.map(row => ({date: row.date, amount: row.income, what: row.incomeWhat}));
+                        this.expenses = parsedData.map(row => ({date: row.date, amount: row.expense, what: row.expenseWhat}));
 
                         this.updateBalances();
                     },
