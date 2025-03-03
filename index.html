@@ -52,7 +52,7 @@
                     <h2 class="text-base/7 font-semibold text-gray-900">Incomes</h2>
 
                     <div>
-                        <div class="mt-4 grid grid-cols-7 gap-x-6 gap-y-2">
+                        <div class="mt-4 grid grid-cols-7 gap-x-6 gap-y-2 content-end">
                             <template v-for="(income, index) in incomes">
                                 <div class="col-span-3">
                                     <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">Date</label>
@@ -80,10 +80,10 @@
                                     </div>
                                 </div>
 
-                                <div class="col-span-1">
+                                <div class="col-span-1 contents">
                                     <button
                                             @click="removeIncome(index)"
-                                            class="ml-2 text-red-600 hover:text-red-800"
+                                            class="ml-2 py-2 w-fit text-red-600 hover:text-red-800 self-end"
                                     >
                                         X
                                     </button>
@@ -105,7 +105,7 @@
                     <h2 class="text-base/7 font-semibold text-gray-900">Expenses</h2>
 
                     <div>
-                        <div class="mt-4 grid grid-cols-7 gap-x-6 gap-y-2">
+                        <div class="mt-4 grid grid-cols-7 gap-x-6 gap-y-2 content-end">
                             <template v-for="(expense, index) in expenses">
                                 <div class="col-span-3">
                                     <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">Date</label>
@@ -133,10 +133,10 @@
                                     </div>
                                 </div>
 
-                                <div class="col-span-1">
+                                <div class="col-span-1 contents">
                                     <button
                                             @click="removeExpense(index)"
-                                            class="ml-2 text-red-600 hover:text-red-800"
+                                            class="ml-2 py-2 w-fit text-red-600 hover:text-red-800 self-end"
                                     >
                                         X
                                     </button>
