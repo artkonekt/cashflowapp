@@ -224,13 +224,8 @@
                         this.updateBalances();
                     },
                     setLocalStorageData() {
-                        if (this.incomes[0].date !== null && this.incomes[0].amount !== null) {
-                            localStorage.setItem('incomes', JSON.stringify(this.incomes));
-                        }
-
-                        if (this.expenses[0].date !== null && this.expenses[0].amount !== null) {
-                            localStorage.setItem('expenses', JSON.stringify(this.expenses));
-                        }
+                        localStorage.setItem('incomes', JSON.stringify(this.incomes));
+                        localStorage.setItem('expenses', JSON.stringify(this.expenses));
                     },
                     clearLocalStorage() {
                         if (confirm('Are you sure you want to clear the local storage?')) {
