@@ -12,31 +12,70 @@
         <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
     </head>
     <body>
-        <div id="app" class="flex flex-col justify-center items-center mb-36 mx-4">
-            <h1 class="mt-10 text-pretty text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl">CashFlowApp</h1>
+        <div id="app" class="mb-36 mx-4">
+            <div class="mt-2">
+                <div class="flex flex-col lg:flex-row gap-5 justify-end">
+                    <form @submit.prevent="createDatabase">
+                        <div class="mt-2">
+                            <input
+                                    v-model="newDatabaseName"
+                                    type="text"
+                                    placeholder="Enter new database name"
+                                    class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600 sm:text-sm/6"
+                            >
+                        </div>
 
-            <div id="cashFlowChart" style="width: 100%; height:500px;"></div>
-
-            <button
-                    @click="clearLocalStorage"
-                    class="mt-4 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-400 disabled:opacity-50 disabled:pointer-events-none"
-                    :disabled="!hasLocalStorageData"
-            >
-                Clear Local Storage
-            </button>
-
-            <!-- Textarea for CSV Input -->
-            <div class="mt-10">
-                <div class="flex flex-col lg:flex-row gap-10">
-                    <div class="space-y-2">
-                        <h2 class="text-base font-semibold text-gray-900">Paste CSV Data</h2>
-
-                        <i>Example: </i>
-                        <pre class="font-bold">2025-01-01,100,10,Salary,Rent&#13;&#10;2025-01-01,100,10,Freelance,Utilities&#13;&#10;2025-01-02,10,200,Investment,Groceries</pre>
-                        <i class="text-sm">date,income,expense,income-what,expense-what</i>
-                    </div>
+                        <button
+                                type="submit"
+                                @click="createDatabase"
+                                class="rounded-md mt-2 bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                        >
+                            Create Database
+                        </button>
+                    </form>
 
                     <div>
+                        <div class="mt-2">
+                            <select
+                                    v-model="selectedDatabase"
+                                    @change="loadDatabase"
+                                    :disabled="databases.length === 0"
+                                    class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600 sm:text-sm/6"
+                            >
+                                <option v-for="db in databases" :value="db">{{ db }}</option>
+                            </select>
+                        </div>
+
+                        <button
+                                type="button"
+                                @click="deleteDatabase"
+                                :disabled="!selectedDatabase"
+                                class="rounded-md mt-2 bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50 disabled:pointer-events-none"
+                        >
+                            Delete Database
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col justify-center items-center">
+                <h1 class="mt-10 text-pretty text-4xl font-semibold tracking-tight text-gray-900 sm:text-5xl">CashFlowApp</h1>
+
+                <div id="cashFlowChart" style="width: 100%; height:500px;"></div>
+
+                <template v-if="selectedDatabase">
+                    <!-- Textarea for CSV Input -->
+                    <div class="mt-10">
+                        <div class="flex flex-col lg:flex-row gap-10">
+                            <div class="space-y-2">
+                                <h2 class="text-base font-semibold text-gray-900">Paste CSV Data</h2>
+
+                                <i>Example: </i>
+                                <pre class="font-bold">2025-01-01,100,10,Salary,Rent&#13;&#10;2025-01-01,100,10,Freelance,Utilities&#13;&#10;2025-01-02,10,200,Investment,Groceries</pre>
+                                <i class="text-sm">date,income,expense,income-what,expense-what</i>
+                            </div>
+
+                            <div>
                         <textarea
                                 v-model="csvInput"
                                 rows="5"
@@ -45,149 +84,156 @@
                                 class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600 sm:text-sm/6"
                         ></textarea>
 
-                        <button
-                                @click="parseCSV"
-                                class="mt-4 rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-400 disabled:bg-gray-400"
-                                :disabled="!csvInput"
-                        >
-                            Load Data
-                        </button>
+                                <button
+                                        @click="parseCSV"
+                                        class="mt-4 rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-400 disabled:bg-gray-400"
+                                        :disabled="!csvInput"
+                                >
+                                    Load Data
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <div class="mt-10 flex flex-col lg:flex-row gap-5">
-                <div>
-                    <h2 class="text-base/7 font-semibold text-gray-900">Incomes</h2>
+                    <div class="mt-10 flex flex-col lg:flex-row gap-5">
+                        <div>
+                            <h2 class="text-base/7 font-semibold text-gray-900">Incomes</h2>
 
-                    <div>
-                        <div class="mt-4 grid grid-cols-9 max-w-2xl gap-x-6 gap-y-2 content-end">
-                            <template v-for="(income, index) in incomes">
-                                <div class="col-span-3">
-                                    <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">Date</label>
+                            <div>
+                                <div class="mt-4 grid grid-cols-9 max-w-2xl gap-x-6 gap-y-2 content-end">
+                                    <template v-for="(income, index) in incomes">
+                                        <div class="col-span-3">
+                                            <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">Date</label>
 
-                                    <div class="mt-2">
-                                        <input
-                                                v-model="income.date"
-                                                type="date"
-                                                placeholder="Enter date"
-                                                class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600 sm:text-sm/6"
-                                        >
-                                    </div>
+                                            <div class="mt-2">
+                                                <input
+                                                        v-model="income.date"
+                                                        type="date"
+                                                        placeholder="Enter date"
+                                                        class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600 sm:text-sm/6"
+                                                >
+                                            </div>
+                                        </div>
+
+                                        <div class="col-span-3">
+                                            <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">Amount</label>
+
+                                            <div class="mt-2">
+                                                <input
+                                                        v-model="income.amount"
+                                                        type="number"
+                                                        placeholder="Enter amount"
+                                                        class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600 sm:text-sm/6"
+                                                >
+                                            </div>
+                                        </div>
+
+                                        <div class="col-span-2">
+                                            <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">What</label>
+
+                                            <div class="mt-2">
+                                                <input
+                                                        v-model="income.what"
+                                                        type="text"
+                                                        class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600 sm:text-sm/6"
+                                                >
+                                            </div>
+                                        </div>
+
+                                        <div class="col-span-1 contents">
+                                            <button
+                                                    @click="removeIncome(index)"
+                                                    class="ml-2 py-2 w-fit text-red-600 hover:text-red-800 self-end"
+                                                    tabindex="-1"
+                                            >
+                                                X
+                                            </button>
+                                        </div>
+                                    </template>
                                 </div>
 
-                                <div class="col-span-3">
-                                    <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">Amount</label>
-
-                                    <div class="mt-2">
-                                        <input
-                                                v-model="income.amount"
-                                                type="number"
-                                                placeholder="Enter amount"
-                                                class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600 sm:text-sm/6"
-                                        >
-                                    </div>
-                                </div>
-
-                                <div class="col-span-2">
-                                    <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">What</label>
-
-                                    <div class="mt-2">
-                                        <input
-                                                v-model="income.what"
-                                                type="text"
-                                                class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600 sm:text-sm/6"
-                                        >
-                                    </div>
-                                </div>
-
-                                <div class="col-span-1 contents">
-                                    <button
-                                            @click="removeIncome(index)"
-                                            class="ml-2 py-2 w-fit text-red-600 hover:text-red-800 self-end"
-                                            tabindex="-1"
-                                    >
-                                        X
-                                    </button>
-                                </div>
-                            </template>
+                                <button
+                                        type="button"
+                                        @click="addIncome"
+                                        class="rounded-md mt-2 bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                                >
+                                    Add Income
+                                </button>
+                            </div>
                         </div>
 
-                        <button
-                                type="button"
-                                @click="addIncome"
-                                class="rounded-md mt-2 bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-                        >
-                            Add Income
-                        </button>
-                    </div>
-                </div>
+                        <div>
+                            <h2 class="text-base/7 font-semibold text-gray-900">Expenses</h2>
 
-                <div>
-                    <h2 class="text-base/7 font-semibold text-gray-900">Expenses</h2>
+                            <div>
+                                <div class="mt-4 grid grid-cols-9 max-w-2xl gap-x-6 gap-y-2 content-end">
+                                    <template v-for="(expense, index) in expenses">
+                                        <div class="col-span-3">
+                                            <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">Date</label>
 
-                    <div>
-                        <div class="mt-4 grid grid-cols-9 max-w-2xl gap-x-6 gap-y-2 content-end">
-                            <template v-for="(expense, index) in expenses">
-                                <div class="col-span-3">
-                                    <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">Date</label>
+                                            <div class="mt-2">
+                                                <input
+                                                        v-model="expense.date"
+                                                        type="date"
+                                                        placeholder="Enter date"
+                                                        class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600 sm:text-sm/6"
+                                                >
+                                            </div>
+                                        </div>
 
-                                    <div class="mt-2">
-                                        <input
-                                                v-model="expense.date"
-                                                type="date"
-                                                placeholder="Enter date"
-                                                class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600 sm:text-sm/6"
-                                        >
-                                    </div>
+                                        <div class="col-span-3">
+                                            <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">Amount</label>
+
+                                            <div class="mt-2">
+                                                <input
+                                                        v-model="expense.amount"
+                                                        type="number"
+                                                        placeholder="Enter amount"
+                                                        class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600 sm:text-sm/6"
+                                                >
+                                            </div>
+                                        </div>
+
+                                        <div class="col-span-2">
+                                            <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">What</label>
+
+                                            <div class="mt-2">
+                                                <input
+                                                        v-model="expense.what"
+                                                        type="text"
+                                                        class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600 sm:text-sm/6"
+                                                >
+                                            </div>
+                                        </div>
+
+                                        <div class="col-span-1 contents">
+                                            <button
+                                                    @click="removeExpense(index)"
+                                                    class="ml-2 py-2 w-fit text-red-600 hover:text-red-800 self-end"
+                                                    tabindex="-1"
+                                            >
+                                                X
+                                            </button>
+                                        </div>
+                                    </template>
                                 </div>
 
-                                <div class="col-span-3">
-                                    <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">Amount</label>
-
-                                    <div class="mt-2">
-                                        <input
-                                                v-model="expense.amount"
-                                                type="number"
-                                                placeholder="Enter amount"
-                                                class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600 sm:text-sm/6"
-                                        >
-                                    </div>
-                                </div>
-
-                                <div class="col-span-2">
-                                    <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">What</label>
-
-                                    <div class="mt-2">
-                                        <input
-                                                v-model="expense.what"
-                                                type="text"
-                                                class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600 sm:text-sm/6"
-                                        >
-                                    </div>
-                                </div>
-
-                                <div class="col-span-1 contents">
-                                    <button
-                                            @click="removeExpense(index)"
-                                            class="ml-2 py-2 w-fit text-red-600 hover:text-red-800 self-end"
-                                            tabindex="-1"
-                                    >
-                                        X
-                                    </button>
-                                </div>
-                            </template>
+                                <button
+                                        type="button"
+                                        @click="addExpense"
+                                        class="rounded-md mt-2 bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                                >
+                                    Add Expense
+                                </button>
+                            </div>
                         </div>
-
-                        <button
-                                type="button"
-                                @click="addExpense"
-                                class="rounded-md mt-2 bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-                        >
-                            Add Expense
-                        </button>
                     </div>
-                </div>
+                </template>
+                <template v-else>
+                    <p>
+                        Create or select a database to start!
+                    </p>
+                </template>
             </div>
         </div>
 
@@ -195,8 +241,11 @@
             let code = {
                 data() {
                     return {
-                        incomes: JSON.parse(localStorage.getItem('incomes')) || [{date: null, amount: null, what: null}],
-                        expenses: JSON.parse(localStorage.getItem('expenses')) || [{date: null, amount: null, what: null}],
+                        databases: JSON.parse(localStorage.getItem('databases')) || [],
+                        selectedDatabase: null,
+                        newDatabaseName: null,
+                        incomes: [this.createEmptyDataObject()],
+                        expenses: [this.createEmptyDataObject()],
                         balances: [],
                         dates: null,
                         csvInput: null,
@@ -207,7 +256,11 @@
                 created() {
                     window.addEventListener('resize', this.resizeChart);
 
-                    this.checkLocalStorageData();
+                    if (this.databases.length > 0) {
+                        this.selectedDatabase = this.databases[0];
+
+                        this.loadDatabase();
+                    }
                 },
                 mounted() {
                     this.cashFlowChart = echarts.init(document.getElementById('cashFlowChart'));
@@ -219,26 +272,56 @@
                     incomes: {
                         handler: _.debounce(function () {
                             this.updateBalances();
-                            this.setLocalStorageData();
-                            this.checkLocalStorageData();
+                            this.saveData();
                         }, 300),
                         deep: true,
                     },
                     expenses: {
                         handler: _.debounce(function () {
                             this.updateBalances();
-                            this.setLocalStorageData();
-                            this.checkLocalStorageData();
+                            this.saveData();
                         }, 300),
                         deep: true,
                     },
                 },
                 methods: {
+                    createDatabase() {
+                        if (this.newDatabaseName && !this.databases.includes(this.newDatabaseName)) {
+                            this.databases.push(this.newDatabaseName);
+                            localStorage.setItem('databases', JSON.stringify(this.databases));
+                            this.newDatabaseName = null;
+
+                            this.selectedDatabase = this.databases[this.databases.length - 1];
+                            this.loadDatabase();
+                        }
+                    },
+                    loadDatabase() {
+                        if (this.selectedDatabase) {
+                            this.incomes = JSON.parse(localStorage.getItem(`${this.selectedDatabase}_incomes`)) || [this.createEmptyDataObject()];
+                            this.expenses = JSON.parse(localStorage.getItem(`${this.selectedDatabase}_expenses`)) || [this.createEmptyDataObject()];
+                        }
+                    },
+                    deleteDatabase() {
+                        if (this.selectedDatabase && confirm(`Are you sure you want to delete "${this.selectedDatabase}"?`)) {
+                            localStorage.removeItem(`${this.selectedDatabase}_incomes`);
+                            localStorage.removeItem(`${this.selectedDatabase}_expenses`);
+                            this.databases = this.databases.filter(db => db !== this.selectedDatabase);
+
+                            if (this.databases.length === 0) {
+                                localStorage.removeItem(`databases`);
+                            } else {
+                                localStorage.setItem('databases', JSON.stringify(this.databases));
+                            }
+
+                            this.selectedDatabase = this.databases.length > 0 ? this.databases[0] : null;
+                            this.loadDatabase();
+                        }
+                    },
                     addIncome() {
-                        this.incomes.push({date: '', amount: '', what: ''});
+                        this.incomes.push(this.createEmptyDataObject());
                     },
                     addExpense() {
-                        this.expenses.push({date: '', amount: '', what: ''});
+                        this.expenses.push(this.createEmptyDataObject());
                     },
                     removeIncome(index) {
                         this.incomes.splice(index, 1);
@@ -248,20 +331,11 @@
                         this.expenses.splice(index, 1);
                         this.updateBalances();
                     },
-                    setLocalStorageData() {
-                        localStorage.setItem('incomes', JSON.stringify(this.incomes));
-                        localStorage.setItem('expenses', JSON.stringify(this.expenses));
-                    },
-                    clearLocalStorage() {
-                        if (confirm('Are you sure you want to clear the local storage?')) {
-                            localStorage.removeItem('incomes');
-                            localStorage.removeItem('expenses');
-                            this.checkLocalStorageData();
-                            this.updateBalances();
+                    saveData() {
+                        if (this.selectedDatabase) {
+                            localStorage.setItem(`${this.selectedDatabase}_incomes`, JSON.stringify(this.incomes));
+                            localStorage.setItem(`${this.selectedDatabase}_expenses`, JSON.stringify(this.expenses));
                         }
-                    },
-                    checkLocalStorageData() {
-                        this.hasLocalStorageData = !!localStorage.getItem('incomes') || !!localStorage.getItem('expenses')
                     },
                     updateBalances() {
                         // Reset balances before recalculating
@@ -375,6 +449,9 @@
                         if (this.cashFlowChart) {
                             this.cashFlowChart.resize();
                         }
+                    },
+                    createEmptyDataObject() {
+                        return {date: null, amount: null, what: null};
                     },
                 },
             };
