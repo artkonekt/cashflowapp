@@ -525,7 +525,7 @@
                         const deadline = new Date(deadlineStr);
                         const overdueDiff = Math.floor((date.getTime() - deadline.getTime()) / (1000 * 60 * 60 * 24));
 
-                        if (date < deadline) {
+                        if (date <= deadline) {
                             return '✔';
                         } else {
                             if (overdueDiff > 30) {
