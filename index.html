@@ -10,6 +10,26 @@
         <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
         <script src="https://cdn.tailwindcss.com"></script>
         <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+
+        <style>
+            .pulsate {
+                -webkit-animation: pulsate 3s ease-out;
+                -webkit-animation-iteration-count: infinite;
+                opacity: 0.5;
+            }
+
+            @-webkit-keyframes pulsate {
+                0% {
+                    opacity: 0.5;
+                }
+                50% {
+                    opacity: 1.0;
+                }
+                100% {
+                    opacity: 0.5;
+                }
+            }
+        </style>
     </head>
     <body>
         <div id="app" class="mb-36 mx-4">
@@ -71,18 +91,18 @@
                                 <h2 class="text-base font-semibold text-gray-900">Paste CSV Data</h2>
 
                                 <i>Example: </i>
-                                <pre class="font-bold">2025-01-01,100,10,Salary,Rent&#13;&#10;2025-01-01,100,10,Freelance,Utilities&#13;&#10;2025-01-02,10,200,Investment,Groceries</pre>
-                                <i class="text-sm">date,income,expense,income-what,expense-what</i>
+                                <pre class="font-bold">2025-01-01,100,10,Salary,Rent,2024-12-25,2025-01-01&#13;&#10;2025-01-01,100,10,Freelance,Utilities,2024-11-12,2025-01-09&#13;&#10;2025-01-02,10,200,Investment,Groceries,2024-12-20,2025-01-02</pre>
+                                <i class="text-sm">date,income,expense,income-what,expense-what,income-deadline,expense-deadline</i>
                             </div>
 
                             <div>
-                        <textarea
-                                v-model="csvInput"
-                                rows="5"
-                                cols="60"
-                                placeholder="Enter CSV data in 'date,income,expense' format"
-                                class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600 sm:text-sm/6"
-                        ></textarea>
+                                <textarea
+                                        v-model="csvInput"
+                                        rows="5"
+                                        cols="60"
+                                        placeholder="Enter CSV data in 'date,income,expense' format"
+                                        class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600 sm:text-sm/6"
+                                ></textarea>
 
                                 <button
                                         @click="parseCSV"
@@ -95,14 +115,16 @@
                         </div>
                     </div>
 
-                    <div class="mt-10 flex flex-col lg:flex-row gap-5">
+                    <!-- INPUTS -->
+                    <div class="mt-10 flex flex-col lg:flex-row gap-12">
+                        <!-- INCOMES -->
                         <div>
                             <h2 class="text-base/7 font-semibold text-gray-900">Incomes</h2>
 
                             <div>
-                                <div class="mt-4 grid grid-cols-9 max-w-2xl gap-x-6 gap-y-2 content-end">
+                                <div class="mt-4 grid grid-cols-11 max-w-3xl gap-x-3 gap-y-2 content-end">
                                     <template v-for="(income, index) in incomes">
-                                        <div class="col-span-3">
+                                        <div class="col-span-2">
                                             <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">Date</label>
 
                                             <div class="mt-2">
@@ -115,7 +137,7 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-span-3">
+                                        <div class="col-span-2">
                                             <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">Amount</label>
 
                                             <div class="mt-2">
@@ -140,6 +162,19 @@
                                             </div>
                                         </div>
 
+                                        <div class="col-span-2">
+                                            <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">Deadline</label>
+
+                                            <div class="mt-2 flex items-center justify-center">
+                                                <input
+                                                        v-model="income.deadline"
+                                                        type="date"
+                                                        placeholder="Enter deadline"
+                                                        class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600 sm:text-sm/6"
+                                                >
+                                            </div>
+                                        </div>
+
                                         <div class="col-span-1 contents">
                                             <button
                                                     @click="removeIncome(index)"
@@ -148,6 +183,14 @@
                                             >
                                                 X
                                             </button>
+                                        </div>
+
+                                        <div class="col-span-2 self-end py-2">
+                                            <span class="ml-2 max-w-26 w-full">
+                                                <span v-if="income.date && income.deadline">
+                                                    <span v-html="getDateDifferenceIndicator(income.date, income.deadline)"></span>
+                                                </span>
+                                            </span>
                                         </div>
                                     </template>
                                 </div>
@@ -162,13 +205,14 @@
                             </div>
                         </div>
 
+                        <!-- EXPENSES -->
                         <div>
                             <h2 class="text-base/7 font-semibold text-gray-900">Expenses</h2>
 
                             <div>
-                                <div class="mt-4 grid grid-cols-9 max-w-2xl gap-x-6 gap-y-2 content-end">
+                                <div class="mt-4 grid grid-cols-11 max-w-3xl gap-x-3 gap-y-2 content-end">
                                     <template v-for="(expense, index) in expenses">
-                                        <div class="col-span-3">
+                                        <div class="col-span-2">
                                             <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">Date</label>
 
                                             <div class="mt-2">
@@ -181,7 +225,7 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-span-3">
+                                        <div class="col-span-2">
                                             <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">Amount</label>
 
                                             <div class="mt-2">
@@ -206,6 +250,19 @@
                                             </div>
                                         </div>
 
+                                        <div class="col-span-2">
+                                            <label v-if="index === 0" class="block text-sm/6 font-medium text-gray-900">Deadline</label>
+
+                                            <div class="mt-2 flex items-center justify-center">
+                                                <input
+                                                        v-model="expense.deadline"
+                                                        type="date"
+                                                        placeholder="Enter deadline"
+                                                        class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline focus:outline-2 focus:-outline-offset-2 focus:outline-green-600 sm:text-sm/6"
+                                                >
+                                            </div>
+                                        </div>
+
                                         <div class="col-span-1 contents">
                                             <button
                                                     @click="removeExpense(index)"
@@ -214,6 +271,14 @@
                                             >
                                                 X
                                             </button>
+                                        </div>
+
+                                        <div class="col-span-2 self-end py-2">
+                                            <span class="ml-2 max-w-96 w-full">
+                                                <template v-if="expense.date && expense.deadline">
+                                                    <span v-html="getDateDifferenceIndicator(expense.date, expense.deadline)"></span>
+                                                </template>
+                                            </span>
                                         </div>
                                     </template>
                                 </div>
@@ -429,19 +494,21 @@
                     parseCSV() {
                         const rows = this.csvInput.split('\n').filter(row => row.trim() !== '');
                         const parsedData = rows.map(row => {
-                            const [date, income, expense, incomeWhat, expenseWhat] = row.split(',').map(cell => cell.trim());
+                            const [date, income, expense, incomeWhat, expenseWhat, incomeDeadline, expenseDeadline] = row.split(',').map(cell => cell.trim());
                             return {
                                 date,
                                 income: parseFloat(income) || 0,
                                 expense: parseFloat(expense) || 0,
                                 incomeWhat: incomeWhat || '',
-                                expenseWhat: expenseWhat || ''
+                                expenseWhat: expenseWhat || '',
+                                incomeDeadline: incomeDeadline || '',
+                                expenseDeadline: expenseDeadline || '',
                             };
                         });
 
                         // Update incomes and expenses
-                        this.incomes = parsedData.map(row => ({date: row.date, amount: row.income, what: row.incomeWhat}));
-                        this.expenses = parsedData.map(row => ({date: row.date, amount: row.expense, what: row.expenseWhat}));
+                        this.incomes = parsedData.map(row => ({date: row.date, amount: row.income, what: row.incomeWhat, deadline: row.incomeDeadline}));
+                        this.expenses = parsedData.map(row => ({date: row.date, amount: row.expense, what: row.expenseWhat, deadline: row.expenseDeadline}));
 
                         this.updateBalances();
                     },
@@ -451,7 +518,26 @@
                         }
                     },
                     createEmptyDataObject() {
-                        return {date: null, amount: null, what: null};
+                        return {date: null, amount: null, what: null, deadline: null};
+                    },
+                    getDateDifferenceIndicator(dateStr, deadlineStr) {
+                        const date = new Date(dateStr);
+                        const deadline = new Date(deadlineStr);
+                        const overdueDiff = Math.floor((date.getTime() - deadline.getTime()) / (1000 * 60 * 60 * 24));
+
+                        if (date < deadline) {
+                            return '✔';
+                        } else {
+                            if (overdueDiff > 30) {
+                                return `<strong class="pulsate text-red-900">${overdueDiff}d overdue!!!</strong>`;
+                            } else if (overdueDiff > 10) {
+                                return `<strong class="text-red-800">${overdueDiff}d overdue</strong>`;
+                            } else if (overdueDiff >= 3) {
+                                return `<strong class="text-yellow-500">${overdueDiff}d overdue</strong>`;
+                            } else if (overdueDiff < 3) {
+                                return `<strong class="text-yellow-900">⧗</strong>`;
+                            }
+                        }
                     },
                 },
             };
